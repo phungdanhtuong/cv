@@ -187,6 +187,73 @@ CREATE TABLE IF NOT EXISTS optimization_history (
   FOREIGN KEY (campaign_id) REFERENCES campaigns(id)
 );
 
+-- Teams table
+CREATE TABLE IF NOT EXISTS teams (
+  id SERIAL PRIMARY KEY,
+  owner_id INTEGER NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (owner_id) REFERENCES users(id)
+);
+
+-- Team Members table
+CREATE TABLE IF NOT EXISTS team_members (
+  id SERIAL PRIMARY KEY,
+  team_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  role VARCHAR(50) DEFAULT 'editor',
+  permissions JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(team_id, user_id),
+  FOREIGN KEY (team_id) REFERENCES teams(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Team Invitations table
+CREATE TABLE IF NOT EXISTS team_invitations (
+  id SERIAL PRIMARY KEY,
+  team_id INTEGER NOT NULL,
+  invited_by INTEGER NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'editor',
+  permissions JSONB,
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (team_id) REFERENCES teams(id),
+  FOREIGN KEY (invited_by) REFERENCES users(id)
+);
+
+-- Team Workspaces table
+CREATE TABLE IF NOT EXISTS team_workspaces (
+  id SERIAL PRIMARY KEY,
+  team_id INTEGER NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (team_id) REFERENCES teams(id)
+);
+
+-- Content Assignments table
+CREATE TABLE IF NOT EXISTS content_assignments (
+  id SERIAL PRIMARY KEY,
+  content_id INTEGER NOT NULL,
+  team_id INTEGER NOT NULL,
+  assigned_to INTEGER NOT NULL,
+  assigned_by INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(content_id),
+  FOREIGN KEY (content_id) REFERENCES content(id),
+  FOREIGN KEY (team_id) REFERENCES teams(id),
+  FOREIGN KEY (assigned_to) REFERENCES users(id),
+  FOREIGN KEY (assigned_by) REFERENCES users(id)
+);
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_content_user_id ON content(user_id);
@@ -196,6 +263,11 @@ CREATE INDEX IF NOT EXISTS idx_agent_profiles_user_id ON agent_profiles(user_id)
 CREATE INDEX IF NOT EXISTS idx_agent_teams_user_id ON agent_teams(user_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_content_user_id ON scheduled_content(user_id);
 CREATE INDEX IF NOT EXISTS idx_optimization_history_campaign_id ON optimization_history(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_teams_owner_id ON teams(owner_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_invitations_team_id ON team_invitations(team_id);
+CREATE INDEX IF NOT EXISTS idx_content_assignments_team_id ON content_assignments(team_id);
 `;
 
 async function setupDatabase() {

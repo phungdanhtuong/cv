@@ -51,6 +51,9 @@ import analyticsRoutes from './routes/analytics.js';
 import schedulingRoutes from './routes/scheduling.js';
 import optimizationRoutes from './routes/optimization.js';
 import agentManagementRoutes from './routes/agentManagement.js';
+import abTestingRoutes from './routes/abTesting.js';
+import contentCalendarRoutes from './routes/contentCalendar.js';
+import teamCollaborationRoutes from './routes/teamCollaboration.js';
 
 app.use('/api/agents', agentRoutes);
 app.use('/api/content', contentRoutes);
@@ -59,6 +62,9 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/scheduling', schedulingRoutes);
 app.use('/api/optimization', optimizationRoutes);
 app.use('/api/agent-management', agentManagementRoutes);
+app.use('/api/ab-tests', abTestingRoutes);
+app.use('/api/calendar', contentCalendarRoutes);
+app.use('/api/team', teamCollaborationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
