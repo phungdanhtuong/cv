@@ -43,12 +43,16 @@ app.get('/', (req, res) => {
   });
 });
 
-// Routes placeholder (will add later)
-// app.use('/api/auth', authRoutes);
-// app.use('/api/agents', agentRoutes);
-// app.use('/api/content', contentRoutes);
-// app.use('/api/ads', adsRoutes);
-// app.use('/api/analytics', analyticsRoutes);
+// Routes
+import agentRoutes from './routes/agents.js';
+import contentRoutes from './routes/content.js';
+import adsRoutes from './routes/ads.js';
+import analyticsRoutes from './routes/analytics.js';
+
+app.use('/api/agents', agentRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/ads', adsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
