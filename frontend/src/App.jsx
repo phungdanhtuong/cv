@@ -6,6 +6,11 @@ import ContentCreator from './pages/ContentCreator';
 import AdsManager from './pages/AdsManager';
 import Analytics from './pages/Analytics';
 import AgentSelector from './pages/AgentSelector';
+import AgentManagement from './pages/AgentManagement';
+import ABTestingDashboard from './pages/ABTestingDashboard';
+import ContentCalendar from './pages/ContentCalendar';
+import TeamCollaboration from './pages/TeamCollaboration';
+import RealtimeDashboard from './pages/RealtimeDashboard';
 import Navbar from './components/common/Navbar';
 import Sidebar from './components/common/Sidebar';
 import './index.css';
@@ -33,6 +38,11 @@ export default function App() {
                 <Route path="/ads" element={<AdsManager />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/agents" element={<AgentSelector />} />
+                <Route path="/agent-management" element={<AgentManagement />} />
+                <Route path="/ab-testing" element={<ABTestingDashboard />} />
+                <Route path="/content-calendar" element={<ContentCalendar />} />
+                <Route path="/team-collaboration" element={<TeamCollaboration />} />
+                <Route path="/realtime" element={<RealtimeDashboard />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </div>
