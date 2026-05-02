@@ -1,11 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { createServer } from 'http';
 import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import pool from './config/database.js';
+import setupWebSocketServer from './config/websocket.js';
 
 const app = express();
+const server = createServer(app);
 
 // Middleware
 app.use(helmet());
@@ -54,6 +57,7 @@ import agentManagementRoutes from './routes/agentManagement.js';
 import abTestingRoutes from './routes/abTesting.js';
 import contentCalendarRoutes from './routes/contentCalendar.js';
 import teamCollaborationRoutes from './routes/teamCollaboration.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 app.use('/api/agents', agentRoutes);
 app.use('/api/content', contentRoutes);
@@ -65,6 +69,7 @@ app.use('/api/agent-management', agentManagementRoutes);
 app.use('/api/ab-tests', abTestingRoutes);
 app.use('/api/calendar', contentCalendarRoutes);
 app.use('/api/team', teamCollaborationRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -80,12 +85,17 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
+// Setup WebSocket
+const wss = setupWebSocketServer(server);
+logger.info('WebSocket server configured');
+
 // Start server
 const PORT = config.port;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
   logger.info(`Environment: ${config.nodeEnv}`);
   logger.info(`Visit http://localhost:${PORT} to test`);
+  logger.info(`WebSocket available at ws://localhost:${PORT}`);
 });
 
 export default app;

@@ -31,7 +31,8 @@
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.0",
     "pg": "^8.11.0",
-    "redis": "^4.6.0"
+    "redis": "^4.6.0",
+    "ws": "^8.14.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
