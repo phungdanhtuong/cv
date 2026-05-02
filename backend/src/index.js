@@ -48,11 +48,15 @@ import agentRoutes from './routes/agents.js';
 import contentRoutes from './routes/content.js';
 import adsRoutes from './routes/ads.js';
 import analyticsRoutes from './routes/analytics.js';
+import schedulingRoutes from './routes/scheduling.js';
+import optimizationRoutes from './routes/optimization.js';
 
 app.use('/api/agents', agentRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/ads', adsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/scheduling', schedulingRoutes);
+app.use('/api/optimization', optimizationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
