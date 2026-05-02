@@ -1,13 +1,15 @@
+import { extractUserId } from '../middleware/auth.js';
 import express from 'express';
 import schedulingService from '../services/schedulingService.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Schedule content
 router.post('/schedule', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const result = await schedulingService.scheduleContent(userId, req.body.contentId, {
       scheduledTime: req.body.scheduledTime,
       platforms: req.body.platforms,
@@ -23,7 +25,7 @@ router.post('/schedule', async (req, res) => {
 // Get scheduled content
 router.get('/scheduled', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const scheduled = await schedulingService.getScheduledContent(userId, req.query.status);
     res.json(scheduled);
   } catch (error) {
@@ -35,7 +37,7 @@ router.get('/scheduled', async (req, res) => {
 // Reschedule
 router.post('/reschedule/:id', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const result = await schedulingService.rescheduleContent(
       userId,
       req.params.id,
@@ -51,7 +53,7 @@ router.post('/reschedule/:id', async (req, res) => {
 // Delete scheduled content
 router.delete('/:id', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const result = await schedulingService.deleteScheduledContent(userId, req.params.id);
     res.json(result);
   } catch (error) {
@@ -63,7 +65,7 @@ router.delete('/:id', async (req, res) => {
 // Get best time to post
 router.get('/best-time/:platform', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const result = await schedulingService.findBestTimeToPost(userId, req.params.platform);
     res.json(result);
   } catch (error) {

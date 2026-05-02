@@ -1,8 +1,10 @@
+import { extractUserId } from '../middleware/auth.js';
 import express from 'express';
 import autoOptimizationService from '../services/autoOptimizationService.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Run optimizations
 router.post('/run', async (req, res) => {
@@ -21,7 +23,7 @@ router.post('/run', async (req, res) => {
 // Get predictions
 router.get('/predictions', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const predictions = await autoOptimizationService.generatePredictions(userId);
     res.json(predictions);
   } catch (error) {

@@ -1,13 +1,15 @@
 import express from 'express';
 import agentManagementService from '../services/agentManagementService.js';
+import { extractUserId } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Enable agent for user
 router.post('/enable/:agentId', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.userId;
     const agentId = req.params.agentId;
 
     if (!userId) {
@@ -28,7 +30,7 @@ router.post('/enable/:agentId', async (req, res) => {
 // Disable agent for user
 router.post('/disable/:agentId', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.userId;
     const agentId = req.params.agentId;
 
     if (!userId) {
@@ -49,7 +51,7 @@ router.post('/disable/:agentId', async (req, res) => {
 // Toggle agent
 router.post('/toggle/:agentId', async (req, res) => {
   try {
-    const userId = req.body.userId || req.query.userId;
+    const userId = req.userId;
     const agentId = req.params.agentId;
 
     if (!userId) {
@@ -70,7 +72,7 @@ router.post('/toggle/:agentId', async (req, res) => {
 // Get enabled agents
 router.get('/enabled', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.userId;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });
@@ -91,7 +93,7 @@ router.get('/enabled', async (req, res) => {
 // Get disabled agents
 router.get('/disabled', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.userId;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });
@@ -112,7 +114,7 @@ router.get('/disabled', async (req, res) => {
 // Get all agents with status
 router.get('/all', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.userId;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });
@@ -133,7 +135,7 @@ router.get('/all', async (req, res) => {
 // Create team
 router.post('/teams', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const teamConfig = req.body.teamConfig;
 
     if (!userId || !teamConfig) {
@@ -154,7 +156,7 @@ router.post('/teams', async (req, res) => {
 // Get user teams
 router.get('/teams', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.userId;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId is required' });
@@ -175,7 +177,7 @@ router.get('/teams', async (req, res) => {
 // Switch team
 router.post('/teams/:teamId/switch', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const teamId = req.params.teamId;
 
     if (!userId) {
@@ -196,7 +198,7 @@ router.post('/teams/:teamId/switch', async (req, res) => {
 // Delete team
 router.delete('/teams/:teamId', async (req, res) => {
   try {
-    const userId = req.query.userId || req.body.userId;
+    const userId = req.userId;
     const teamId = req.params.teamId;
 
     if (!userId) {
@@ -217,7 +219,7 @@ router.delete('/teams/:teamId', async (req, res) => {
 // Get agent usage stats
 router.get('/stats', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.userId;
     const days = req.query.days || 30;
 
     if (!userId) {
@@ -238,7 +240,7 @@ router.get('/stats', async (req, res) => {
 // Get agent recommendations
 router.get('/recommend/:taskType', async (req, res) => {
   try {
-    const userId = req.query.userId;
+    const userId = req.userId;
     const taskType = req.params.taskType;
 
     if (!userId) {

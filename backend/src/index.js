@@ -47,6 +47,7 @@ app.get('/', (req, res) => {
 });
 
 // Routes
+import authRoutes from './routes/auth.js';
 import agentRoutes from './routes/agents.js';
 import contentRoutes from './routes/content.js';
 import adsRoutes from './routes/ads.js';
@@ -59,6 +60,7 @@ import contentCalendarRoutes from './routes/contentCalendar.js';
 import teamCollaborationRoutes from './routes/teamCollaboration.js';
 import dashboardRoutes from './routes/dashboard.js';
 
+app.use('/api/auth', authRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/ads', adsRoutes);

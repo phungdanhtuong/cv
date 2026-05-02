@@ -1,8 +1,10 @@
+import { extractUserId } from '../middleware/auth.js';
 import express from 'express';
 import contentCalendarService from '../services/contentCalendarService.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Add content to calendar
 router.post('/add', async (req, res) => {

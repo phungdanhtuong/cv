@@ -1,13 +1,15 @@
 import express from 'express';
 import pool from '../config/database.js';
+import { extractUserId } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Get analytics summary
 router.get('/summary', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
 
     // Get content stats
     const contentStats = await pool.query(
@@ -40,7 +42,7 @@ router.get('/summary', async (req, res) => {
 // Get content analytics
 router.get('/content', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const { platform, startDate, endDate } = req.query;
 
     let query = 'SELECT * FROM content WHERE user_id = $1';
@@ -74,7 +76,7 @@ router.get('/content', async (req, res) => {
 // Get ad analytics
 router.get('/ads', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
     const { platform, startDate, endDate } = req.query;
 
     let query = 'SELECT * FROM campaigns WHERE user_id = $1';
@@ -108,7 +110,7 @@ router.get('/ads', async (req, res) => {
 // Get ROI calculation
 router.get('/roi', async (req, res) => {
   try {
-    const userId = req.body.userId;
+    const userId = req.userId;
 
     const campaigns = await pool.query(
       'SELECT budget, performance_data FROM campaigns WHERE user_id = $1',

@@ -1,8 +1,10 @@
+import { extractUserId } from '../middleware/auth.js';
 import express from 'express';
 import abTestingService from '../services/abTestingService.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Create A/B test
 router.post('/create', async (req, res) => {

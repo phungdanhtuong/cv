@@ -1,8 +1,10 @@
+import { extractUserId } from '../middleware/auth.js';
 import express from 'express';
 import agentService from '../services/agentService.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Get all agents
 router.get('/', async (req, res) => {

@@ -1,8 +1,10 @@
+import { extractUserId } from '../middleware/auth.js';
 import express from 'express';
 import realtimeDashboardService from '../services/realtimeDashboardService.js';
 import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+router.use(extractUserId);
 
 // Get dashboard summary
 router.get('/summary/:userId', async (req, res) => {
