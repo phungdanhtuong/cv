@@ -1,36 +1,59 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { dashboardAPI, analyticsAPI } from '../utils/api';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
+  const { user, isAuthenticated } = useAuth();
+  const [summary, setSummary] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    if (isAuthenticated && user?.id) {
+      fetchDashboardData();
+    }
+  }, [user?.id, isAuthenticated]);
 
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/analytics/summary', {
-        data: { userId: 1 }, // Mock user ID
-      });
-      setStats(response.data);
+      setLoading(true);
+      setError(null);
+
+      const summaryData = await dashboardAPI.getSummary(user.id);
+      setSummary(summaryData.data);
+
+      const analyticsData = await analyticsAPI.getSummary(user.id);
+      setAnalytics(analyticsData);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-gray-600">Please log in to view your dashboard</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+      <p className="text-gray-600 mb-8">Welcome, {user?.email || 'User'}!</p>
+
+      {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
       {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <p className="text-red-600">Error: {error}</p>
+        <div className="text-center py-12">
+          <div className="inline-block">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+          <p className="text-gray-600 mt-4">Loading dashboard...</p>
+        </div>
       ) : (
         <div>
           {/* Stats Grid */}
@@ -38,38 +61,58 @@ export default function Dashboard() {
             {/* Content stat */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-sm font-medium text-gray-500">Total Content</h3>
-              <p className="text-3xl font-bold text-gray-900">
-                {stats?.content?.reduce((sum, c) => sum + c.count, 0) || 0}
+              <p className="text-3xl font-bold text-gray-900">{summary?.content?.total || 0}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {summary?.content?.published || 0} published
               </p>
             </div>
 
-            {/* Published stat */}
+            {/* Draft stat */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-sm font-medium text-gray-500">Published</h3>
-              <p className="text-3xl font-bold text-green-600">
-                {stats?.content?.reduce((sum, c) => sum + (c.published || 0), 0) || 0}
-              </p>
+              <h3 className="text-sm font-medium text-gray-500">Drafts</h3>
+              <p className="text-3xl font-bold text-yellow-600">{summary?.content?.draft || 0}</p>
             </div>
 
             {/* Campaigns stat */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-sm font-medium text-gray-500">Ad Campaigns</h3>
-              <p className="text-3xl font-bold text-blue-600">
-                {stats?.ads?.reduce((sum, a) => sum + a.count, 0) || 0}
+              <p className="text-3xl font-bold text-blue-600">{summary?.campaigns?.total || 0}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {summary?.campaigns?.active || 0} active
               </p>
             </div>
 
-            {/* Spend stat */}
+            {/* Budget stat */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-sm font-medium text-gray-500">Total Ad Spend</h3>
+              <h3 className="text-sm font-medium text-gray-500">Total Budget</h3>
               <p className="text-3xl font-bold text-purple-600">
-                ${stats?.ads?.reduce((sum, a) => sum + (a.total_spend || 0), 0) || 0}
+                ${summary?.campaigns?.total_budget || 0}
+              </p>
+            </div>
+          </div>
+
+          {/* Scheduled Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-sm font-medium text-gray-500">Scheduled Content</h3>
+              <p className="text-3xl font-bold text-gray-900">
+                {summary?.scheduledContent?.total || 0}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                {summary?.scheduledContent?.upcoming_week || 0} this week
+              </p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>
+              <p className="text-lg font-bold text-gray-900">
+                {summary?.timestamp ? new Date(summary.timestamp).toLocaleDateString() : 'N/A'}
               </p>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <a

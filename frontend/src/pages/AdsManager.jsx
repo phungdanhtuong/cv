@@ -1,335 +1,302 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { adsAPI } from '../utils/api';
 
 export default function AdsManager() {
+  const { user, isAuthenticated } = useAuth();
   const [tab, setTab] = useState('create');
   const [formData, setFormData] = useState({
     name: '',
-    contentId: '',
     budget: 100,
     platform: 'facebook',
     targetAudience: {
-      geoLocations: { regions: [] },
       ageMin: 18,
       ageMax: 65,
       interests: [],
     },
     duration: 7,
-    adAccountId: 1,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
-  const [result, setResult] = useState(null);
+  const [fetchingCampaigns, setFetchingCampaigns] = useState(false);
+
+  const platforms = ['facebook', 'instagram', 'google', 'linkedin', 'tiktok'];
+
+  useEffect(() => {
+    if (tab === 'list' && isAuthenticated) {
+      fetchCampaigns();
+    }
+  }, [tab, isAuthenticated]);
+
+  const fetchCampaigns = async () => {
+    try {
+      setFetchingCampaigns(true);
+      const data = await adsAPI.listCampaigns(user.id);
+      setCampaigns(data.campaigns || []);
+    } catch (err) {
+      setError('Failed to load campaigns: ' + (err.message || 'Unknown error'));
+    } finally {
+      setFetchingCampaigns(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/ads/campaigns/create', {
-        userId: 1,
+      if (!formData.name.trim()) {
+        throw new Error('Campaign name is required');
+      }
+
+      if (formData.budget < 10) {
+        throw new Error('Minimum budget is $10');
+      }
+
+      const response = await adsAPI.createCampaign({
+        userId: user.id,
         ...formData,
       });
 
-      setResult(response.data);
+      setSuccess('Campaign created successfully!');
       setFormData({
         name: '',
-        contentId: '',
         budget: 100,
         platform: 'facebook',
-        targetAudience: {
-          geoLocations: { regions: [] },
-          ageMin: 18,
-          ageMax: 65,
-          interests: [],
-        },
+        targetAudience: { ageMin: 18, ageMax: 65, interests: [] },
         duration: 7,
-        adAccountId: 1,
       });
+
+      setTimeout(() => {
+        setSuccess(null);
+        setTab('list');
+        fetchCampaigns();
+      }, 2000);
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      setError(err.message || 'Failed to create campaign');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCampaigns = async () => {
+  const handleApproveCampaign = async (campaignId) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/ads/campaigns/list', {
-        data: { userId: 1 },
-      });
-      setCampaigns(response.data);
+      await adsAPI.approveCampaign(campaignId);
+      setSuccess('Campaign approved!');
+      fetchCampaigns();
+      setTimeout(() => setSuccess(null), 2000);
     } catch (err) {
-      setError(err.message);
+      setError('Failed to approve campaign: ' + (err.message || 'Unknown error'));
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-gray-600">Please log in to manage ads</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Ad Campaigns</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Ad Campaign Manager</h1>
+
+      {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+      {success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{success}</div>}
 
       {/* Tabs */}
-      <div className="flex border-b mb-8">
+      <div className="flex gap-4 mb-8 border-b border-gray-200">
         <button
-          onClick={() => {
-            setTab('create');
-            setResult(null);
-          }}
-          className={`px-4 py-2 font-medium ${
+          onClick={() => setTab('create')}
+          className={`px-4 py-2 font-medium transition ${
             tab === 'create'
               ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
           Create Campaign
         </button>
         <button
-          onClick={() => {
-            setTab('campaigns');
-            fetchCampaigns();
-          }}
-          className={`px-4 py-2 font-medium ${
-            tab === 'campaigns'
+          onClick={() => setTab('list')}
+          className={`px-4 py-2 font-medium transition ${
+            tab === 'list'
               ? 'border-b-2 border-blue-500 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
           My Campaigns
         </button>
       </div>
 
-      {tab === 'create' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Form */}
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+      {/* Create Tab */}
+      {tab === 'create' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Campaign Name */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaign Name
-                </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., 'Summer Sale Campaign'"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Summer Sale 2026"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
 
-              {/* Budget */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget (USD)
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="range"
-                    min="10"
-                    max="1000"
-                    step="10"
-                    value={formData.budget}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, budget: parseFloat(e.target.value) }))
-                    }
-                    className="flex-1"
-                  />
-                  <span className="ml-4 text-lg font-bold text-gray-900">${formData.budget}</span>
-                </div>
-              </div>
-
               {/* Platform */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Platform
-                </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Platform</label>
                 <select
                   value={formData.platform}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, platform: e.target.value }))
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData((prev) => ({ ...prev, platform: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="facebook">Facebook</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="google">Google Ads</option>
-                  <option value="tiktok">TikTok</option>
+                  {platforms.map((p) => (
+                    <option key={p} value={p}>
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Age Range */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Age Range
-                </label>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <input
-                      type="number"
-                      min="13"
-                      max="100"
-                      value={formData.targetAudience.ageMin}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          targetAudience: {
-                            ...prev.targetAudience,
-                            ageMin: parseInt(e.target.value),
-                          },
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="Min age"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="number"
-                      min="13"
-                      max="100"
-                      value={formData.targetAudience.ageMax}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          targetAudience: {
-                            ...prev.targetAudience,
-                            ageMax: parseInt(e.target.value),
-                          },
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="Max age"
-                    />
-                  </div>
-                </div>
+              {/* Budget */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Budget (USD)</label>
+                <input
+                  type="number"
+                  min="10"
+                  value={formData.budget}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, budget: parseInt(e.target.value) }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
               </div>
 
               {/* Duration */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Campaign Duration (days)
-                </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Duration (days)</label>
                 <input
                   type="number"
                   min="1"
                   max="365"
                   value={formData.duration}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, duration: parseInt(e.target.value) }))
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setFormData((prev) => ({ ...prev, duration: parseInt(e.target.value) }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
-              {/* Error */}
-              {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
+              {/* Age Range */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Age</label>
+                  <input
+                    type="number"
+                    min="13"
+                    value={formData.targetAudience.ageMin}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        targetAudience: { ...prev.targetAudience, ageMin: parseInt(e.target.value) },
+                      }))
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Age</label>
+                  <input
+                    type="number"
+                    max="120"
+                    value={formData.targetAudience.ageMax}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        targetAudience: { ...prev.targetAudience, ageMax: parseInt(e.target.value) },
+                      }))
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
 
               {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
+                className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 font-medium transition"
               >
-                {loading ? 'Creating Campaign...' : 'Create Campaign'}
+                {loading ? 'Creating...' : 'Create Campaign'}
               </button>
             </form>
           </div>
 
-          {/* Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Campaign Summary</h2>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-gray-500">Budget</p>
-                  <p className="text-2xl font-bold text-green-600">${formData.budget}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Daily Budget</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    ${(formData.budget / formData.duration).toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Duration</p>
-                  <p className="text-lg font-semibold text-gray-900">{formData.duration} days</p>
-                </div>
-              </div>
-            </div>
+          {/* Info Panel */}
+          <div className="bg-blue-50 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Campaign Tips</h3>
+            <ul className="space-y-3 text-sm text-gray-700">
+              <li>✓ Start with a realistic budget (minimum $10)</li>
+              <li>✓ Target specific age groups for better ROI</li>
+              <li>✓ Run campaigns for at least 7 days</li>
+              <li>✓ Use clear, compelling campaign names</li>
+              <li>✓ Monitor performance daily</li>
+            </ul>
           </div>
-        </div>
-      ) : (
-        /* Campaigns List */
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {campaigns.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No campaigns yet</div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Campaign
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Platform
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Budget
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id}>
-                    <td className="px-6 py-4 text-sm text-gray-900">{campaign.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 capitalize">{campaign.platform}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">${campaign.budget}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          campaign.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : campaign.status === 'paused'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {campaign.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <button className="text-blue-600 hover:text-blue-900 mr-4">View</button>
-                      <button className="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
       )}
 
-      {/* Results */}
-      {result && (
-        <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-          <h2 className="text-lg font-bold text-green-900 mb-3">Campaign Created Successfully!</h2>
-          <p className="text-green-700 mb-4">Campaign ID: {result.campaignId}</p>
-          <div className="p-4 bg-white rounded mb-4">
-            <p className="text-sm text-gray-600 mb-2">Strategy:</p>
-            <p className="text-gray-900">{result.strategy}</p>
-          </div>
-          <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-            Review & Launch Campaign
-          </button>
+      {/* List Tab */}
+      {tab === 'list' && (
+        <div>
+          {fetchingCampaigns ? (
+            <p className="text-center py-8">Loading campaigns...</p>
+          ) : campaigns.length === 0 ? (
+            <div className="bg-gray-50 rounded-lg p-12 text-center">
+              <p className="text-gray-600">No campaigns yet. Create your first campaign!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {campaigns.map((campaign) => (
+                <div key={campaign.id} className="bg-white rounded-lg shadow p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{campaign.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {campaign.platform} • ${campaign.budget} budget
+                      </p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        campaign.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {campaign.status}
+                    </span>
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => handleApproveCampaign(campaign.id)}
+                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                    >
+                      Approve
+                    </button>
+                    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
